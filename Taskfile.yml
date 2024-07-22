@@ -1,0 +1,61 @@
+version: '3'
+
+tasks:
+
+  install:
+    desc: Install all prerequesites
+    cmds:
+      - |
+        pushd /tmp
+        curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+        sudo mv bin/act /usr/local/bin/act
+        popd
+        pip install pipx
+        pipx install pip-tools
+        pip install -r requirements-dev.txt
+
+  e2e:
+    desc: To execute e2e backup script
+    cmds:
+      - |
+        git clone https://github.com/descartes-underwriting/devops-technical-test-data.git repo
+        rm -rf data && mkdir data
+      - |
+         {
+          python3 script/backup_script.py --repo_dir=repo &&
+          find data -type f -exec md5sum {} \; | sort > "fingerprint.txt"
+         } || true
+         {
+          diff --color fingerprint.txt test/data/reference.txt
+         } || { echo -e "\e[31mError: fingerprint does not match reference.See above for more details\e[0m"; }
+      - rm -rf repo data fingerprint.txt
+
+  ci:
+    desc: To test ci locally
+    cmds:
+     - |
+        rm -rf data && mkdir data && git stash
+     - |
+        {
+           act -j backup
+        } || true
+     - git checkout main && git stash list | grep -q 'stash@{' && git stash pop || echo "No stashes found to pop"
+
+  clean:
+    desc: Clean data
+    cmds:
+     - rm -rf data/
+
+  test:
+    desc: Execute static and unit tests
+    cmds:
+     - mypy script/backup_script.py
+     - pytest -v test/test_backup_script.py
+
+  generate-reqs:
+    desc: Generate requirements.txt and reuqirements-dev.txt
+    cmds:
+      - |
+         pip-compile
+         pip-compile --extra dev -o requirements-dev.txt
+        
