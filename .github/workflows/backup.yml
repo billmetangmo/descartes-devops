@@ -1,72 +1,72 @@
-name: Daily Backup
+# name: Daily Backup
 
-on:
-  schedule:
-    - cron: '5 0 * * *'  # Run daily at midnight UTC
-  workflow_dispatch:  # Allow manual trigger
+# on:
+#   schedule:
+#     - cron: '5 0 * * *'  # Run daily at midnight UTC
+#   workflow_dispatch:  # Allow manual trigger
 
-jobs:
-  backup:
-    runs-on: ubuntu-latest
+# jobs:
+#   backup:
+#     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
+#     permissions:
+#       contents: write
     
-    steps:
+#     steps:
 
-    - name: Check out repository
-      uses: actions/checkout@v4
+#     - name: Check out repository
+#       uses: actions/checkout@v4
 
-    - name: Check out descartes repo
-      uses: actions/checkout@v4
-      if: ${{ !env.ACT }}
-      with:
-        repository: descartes-underwriting/devops-technical-test-data
-        ref: "01-01-2022-test"
-        fetch-depth: 0
-        path: repo
+#     - name: Check out descartes repo
+#       uses: actions/checkout@v4
+#       if: ${{ !env.ACT }}
+#       with:
+#         repository: descartes-underwriting/devops-technical-test-data
+#         ref: "01-01-2022-test"
+#         fetch-depth: 0
+#         path: repo
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-       python-version: '3.12'
+#     - name: Set up Python
+#       uses: actions/setup-python@v5
+#       with:
+#        python-version: '3.12'
 
-    - uses: actions/cache@v4
-      name: Configure pip caching
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+#     - uses: actions/cache@v4
+#       name: Configure pip caching
+#       with:
+#         path: ~/.cache/pip
+#         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+#         restore-keys: |
+#           ${{ runner.os }}-pip-
         
-    - name: Install Python dependencies
-      run: |
-        pip install -r requirements.txt
+#     - name: Install Python dependencies
+#       run: |
+#         pip install -r requirements.txt
 
-    - name: Run backup script
-      if: ${{ env.ACT }}
-      run: |
-        mkdir -p data && python3 script/backup_script.py 
+#     - name: Run backup script
+#       if: ${{ env.ACT }}
+#       run: |
+#         mkdir -p data && python3 script/backup_script.py 
 
-    - name: Run backup script
-      if: ${{ !env.ACT }}
-      run: |
-        if [ -d "data" ]; then
-          start_date=$(date -d "yesterday" '+%d-%m-%Y')
-          end_date=$(date '+%d-%m-%Y')
-          python3 script/backup_script.py --repo_dir=repo --start_date=$start_date --end_date=$end_date
-        else
-          mkdir data && python3 script/backup_script.py  --repo_dir=repo
-        fi
+#     - name: Run backup script
+#       if: ${{ !env.ACT }}
+#       run: |
+#         if [ -d "data" ]; then
+#           start_date=$(date -d "yesterday" '+%d-%m-%Y')
+#           end_date=$(date '+%d-%m-%Y')
+#           python3 script/backup_script.py --repo_dir=repo --start_date=$start_date --end_date=$end_date
+#         else
+#           mkdir data && python3 script/backup_script.py  --repo_dir=repo
+#         fi
 
-    - name: Set commit message
-      if: ${{ !env.ACT }}
-      run: |
-        echo "COMMIT_MESSAGE=Data backup $(date -d 'yesterday' '+%d-%m-%Y')" >> $GITHUB_ENV
+#     - name: Set commit message
+#       if: ${{ !env.ACT }}
+#       run: |
+#         echo "COMMIT_MESSAGE=Data backup $(date -d 'yesterday' '+%d-%m-%Y')" >> $GITHUB_ENV
   
-    - name: Push data
-      uses: stefanzweifel/git-auto-commit-action@v5
-      if: ${{ !env.ACT }}
-      with:
-        commit_message: ${{ env.COMMIT_MESSAGE }}
-        branch: ${{ env.BRANCH_NAME }}
+#     - name: Push data
+#       uses: stefanzweifel/git-auto-commit-action@v5
+#       if: ${{ !env.ACT }}
+#       with:
+#         commit_message: ${{ env.COMMIT_MESSAGE }}
+#         branch: ${{ env.BRANCH_NAME }}
